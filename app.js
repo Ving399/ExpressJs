@@ -3,6 +3,10 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 
+const fs = require('fs');
+const path = require('path');
+const usersFilePath = path.join(__dirname, 'users.json');
+
 const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true })); 
@@ -58,7 +62,35 @@ app.post('/api/data', (req, res) => {
         message: 'Datos recibidos',
         data
     })
-})
+});
+
+//punto de entrada para consultar users
+app.get('/users', (req, res) => {
+    fs.readFile(usersFilePath, 'utf-8', (err, data) => {
+       if(err) {
+        return res.status(500).json({ error: 'Error reading users file' });
+       }
+       const users = JSON.parse(data);
+       res.json(users);
+    })
+});
+
+app.post('/users', (req, res) => {
+    const newUser = req.body;
+    fs.readFile(usersFilePath, 'utf-8', (err, data) => {
+        if(err) {
+            return res.status(500).json({ error: 'Error reading users file' });
+        }
+        const users = JSON.parse(data);
+        users.push(newUser);
+        fs.writeFile(usersFilePath, JSON.stringify(users, null, 2), (err) => {
+            if (err) {
+                return res.status(500).json({ error: 'Error al guardar usuario' });
+            }
+            res.status(201).json(newUser);
+        });
+    });
+});
  
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
